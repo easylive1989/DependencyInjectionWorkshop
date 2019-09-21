@@ -1,17 +1,19 @@
 ﻿using System;
-using System.Data;
-using System.Data.SqlClient;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
-using Dapper;
 using SlackAPI;
 
 namespace DependencyInjectionWorkshop.Models
 {
     public class AuthenticationService
     {
-        private ProfileDao _profileDao = new ProfileDao();
+        private readonly ProfileDao _profileDao;
+        private readonly Sha256Adapter _sha256Adapter;
+
+        public AuthenticationService()
+        {
+            _profileDao = new ProfileDao();
+            _sha256Adapter = new Sha256Adapter();
+        }
 
         public bool Verify(string accountId, string password, string otp)
         {
@@ -25,7 +27,7 @@ namespace DependencyInjectionWorkshop.Models
 
             var passwordFromDb = _profileDao.GetPasswordFromDb(accountId);
 
-            var hashedPassword = GetHashedPassword(password);
+            var hashedPassword = _sha256Adapter.GetHashedPassword(password);
 
             var currentOtp = GetCurrentOtp(accountId, httpClient);
 
@@ -50,9 +52,9 @@ namespace DependencyInjectionWorkshop.Models
         private static bool GetIsLocked(string accountId, HttpClient httpClient)
         {
             var isLockedResponse =
-                httpClient.PostAsync("api/failedCounter/IsLocked", new StringContent(accountId)).Result;
+                httpClient.PostAsJsonAsync("api/failedCounter/IsLocked", new StringContent(accountId)).Result;
             isLockedResponse.EnsureSuccessStatusCode();
-            var isLocked = bool.Parse(isLockedResponse.Content.ReadAsStringAsync().Result);
+            var isLocked = isLockedResponse.Content.ReadAsAsync<bool>().Result;
             return isLocked;
         }
 
@@ -79,64 +81,35 @@ namespace DependencyInjectionWorkshop.Models
         private static int GetFailCount(string accountId, HttpClient httpClient)
         {
             var failedCountResponse =
-                httpClient.PostAsync("api/failedCounter/GetFailedCount", new StringContent(accountId)).Result;
+                httpClient.PostAsJsonAsync("api/failedCounter/GetFailedCount", accountId).Result;
             failedCountResponse.EnsureSuccessStatusCode();
-            var failedCount = int.Parse(failedCountResponse.Content.ReadAsStringAsync().Result);
+            var failedCount = failedCountResponse.Content.ReadAsAsync<int>().Result;
             return failedCount;
         }
 
         private static void AddFailCount(string accountId, HttpClient httpClient)
         {
             var addFailedCountResponse =
-                httpClient.PostAsync("api/failedCounter/Add", new StringContent(accountId)).Result;
+                httpClient.PostAsJsonAsync("api/failedCounter/Add", accountId).Result;
             addFailedCountResponse.EnsureSuccessStatusCode();
         }
 
         private static void ResetFailCount(string accountId, HttpClient httpClient)
         {
-            var resetResponse = httpClient.PostAsync("api/failedCounter/Reset", new StringContent(accountId)).Result;
+            var resetResponse = httpClient.PostAsJsonAsync("api/failedCounter/Reset", accountId).Result;
             resetResponse.EnsureSuccessStatusCode();
         }
 
         private static string GetCurrentOtp(string accountId, HttpClient httpClient)
         {
-            var response = httpClient.PostAsync("api/otps", new StringContent(accountId)).Result;
+            var response = httpClient.PostAsJsonAsync("api/otps", accountId).Result;
             if (!response.IsSuccessStatusCode)
             {
                 throw new Exception($"web api error, accountId:{accountId}");
             }
 
-            var currentOtp = response.Content.ReadAsStringAsync().Result;
+            var currentOtp = response.Content.ReadAsAsync<string>().Result;
             return currentOtp;
-        }
-
-        private static string GetHashedPassword(string password)
-        {
-            var crypt = new System.Security.Cryptography.SHA256Managed();
-            var hash = new StringBuilder();
-            var crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(password));
-            foreach (var theByte in crypto)
-            {
-                hash.Append(theByte.ToString("x2"));
-            }
-
-            var hashedPassword = hash.ToString();
-            return hashedPassword;
-        }
-    }
-
-    internal class ProfileDao
-    {
-        public string GetPasswordFromDb(string accountId)
-        {
-            string passwordFromDb;
-            using (var connection = new SqlConnection("my connection string"))
-            {
-                passwordFromDb = connection.Query<string>("spGetUserPassword", new {Id = accountId},
-                    commandType: CommandType.StoredProcedure).SingleOrDefault();
-            }
-
-            return passwordFromDb;
         }
     }
 
