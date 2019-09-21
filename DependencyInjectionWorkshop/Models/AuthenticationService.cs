@@ -1,7 +1,4 @@
-﻿using System;
-using System.Net.Http;
-
-namespace DependencyInjectionWorkshop.Models
+﻿namespace DependencyInjectionWorkshop.Models
 {
     public class AuthenticationService
     {
@@ -54,12 +51,12 @@ namespace DependencyInjectionWorkshop.Models
 
         private void LogFailCount(string accountId)
         {
-            var failedCount = _failCounter.GetFailCount(accountId, new HttpClient() {BaseAddress = new Uri("http://joey.com/")});
+            var failedCount = _failCounter.GetFailCount(accountId);
 
             LogMessage($"accountId:{accountId} failed times:{failedCount}");
         }
 
-        private static void LogMessage(string message)
+        private void LogMessage(string message)
         {
             var logger = NLog.LogManager.GetCurrentClassLogger();
             logger.Info(message);
