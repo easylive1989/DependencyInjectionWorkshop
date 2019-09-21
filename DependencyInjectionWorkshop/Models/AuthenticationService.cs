@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net.Http;
-using SlackAPI;
 
 namespace DependencyInjectionWorkshop.Models
 {
@@ -8,11 +7,15 @@ namespace DependencyInjectionWorkshop.Models
     {
         private readonly ProfileDao _profileDao;
         private readonly Sha256Adapter _sha256Adapter;
+        private readonly OptService _optService;
+        private SlackAdapter _slackAdapter;
 
         public AuthenticationService()
         {
             _profileDao = new ProfileDao();
             _sha256Adapter = new Sha256Adapter();
+            _optService = new OptService();
+            _slackAdapter = new SlackAdapter();
         }
 
         public bool Verify(string accountId, string password, string otp)
@@ -29,7 +32,7 @@ namespace DependencyInjectionWorkshop.Models
 
             var hashedPassword = _sha256Adapter.GetHashedPassword(password);
 
-            var currentOtp = GetCurrentOtp(accountId, httpClient);
+            var currentOtp = _optService.GetCurrentOtp(accountId, httpClient);
 
             if (passwordFromDb == hashedPassword && otp == currentOtp)
             {
@@ -43,7 +46,7 @@ namespace DependencyInjectionWorkshop.Models
 
                 LogFailCount(accountId, httpClient);
 
-                Notify(accountId);
+                _slackAdapter.Notify(accountId);
 
                 return false;
             }
@@ -56,13 +59,6 @@ namespace DependencyInjectionWorkshop.Models
             isLockedResponse.EnsureSuccessStatusCode();
             var isLocked = isLockedResponse.Content.ReadAsAsync<bool>().Result;
             return isLocked;
-        }
-
-        private static void Notify(string accountId)
-        {
-            var slackClient = new SlackClient("my api token");
-            var message = $"{accountId} try to login failed";
-            slackClient.PostMessage(response1 => { }, "my channel", message, "my bot name");
         }
 
         private static void LogFailCount(string accountId, HttpClient httpClient)
@@ -99,21 +95,5 @@ namespace DependencyInjectionWorkshop.Models
             var resetResponse = httpClient.PostAsJsonAsync("api/failedCounter/Reset", accountId).Result;
             resetResponse.EnsureSuccessStatusCode();
         }
-
-        private static string GetCurrentOtp(string accountId, HttpClient httpClient)
-        {
-            var response = httpClient.PostAsJsonAsync("api/otps", accountId).Result;
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception($"web api error, accountId:{accountId}");
-            }
-
-            var currentOtp = response.Content.ReadAsAsync<string>().Result;
-            return currentOtp;
-        }
-    }
-
-    public class FailedTooManyTimesException : Exception
-    {
     }
 }

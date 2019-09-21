@@ -2,7 +2,7 @@ using System.Text;
 
 namespace DependencyInjectionWorkshop.Models
 {
-    internal class Sha256Adapter
+    public class Sha256Adapter
     {
         public string GetHashedPassword(string password)
         {
