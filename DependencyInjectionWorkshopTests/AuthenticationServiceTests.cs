@@ -39,9 +39,20 @@ namespace DependencyInjectionWorkshopTests
             GivenHash(DefaultInputPassword, DefaultHashedPassword);
             GivenOtp(DefaultAccountId, DefaultOtp);
 
-            var isValid = WhenVerify(DefaultAccountId, DefaultInputPassword, DefaultOtp);
+            var isValid1 = WhenVerify(DefaultAccountId, DefaultInputPassword, DefaultOtp);
+            var isValid = isValid1;
 
             ShouldBeValid(isValid);
+        }
+
+        private bool WhenValid()
+        {
+            GivenPassword(DefaultAccountId, DefaultHashedPassword);
+            GivenHash(DefaultInputPassword, DefaultHashedPassword);
+            GivenOtp(DefaultAccountId, DefaultOtp);
+
+            var isValid = WhenVerify(DefaultAccountId, DefaultInputPassword, DefaultOtp);
+            return isValid;
         }
 
         [Test]
@@ -54,6 +65,14 @@ namespace DependencyInjectionWorkshopTests
             var isValid = WhenVerify(DefaultAccountId, DefaultInputPassword, DefaultOtp);
 
             ShouldBeInvalid(isValid);
+        }
+
+        [Test]
+        public void reset_failed_count_when_valid()
+        {
+            WhenValid();
+            
+            _failedCounter.Received(1).Reset(DefaultAccountId);
         }
 
         private static void ShouldBeInvalid(bool isValid)
