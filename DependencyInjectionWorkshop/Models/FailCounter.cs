@@ -3,7 +3,7 @@ using System.Net.Http;
 
 namespace DependencyInjectionWorkshop.Models
 {
-    public interface IFailCounter
+    public interface IFailedCounter
     {
         void Reset(string accountId);
         void Add(string accountId);
@@ -11,7 +11,7 @@ namespace DependencyInjectionWorkshop.Models
         bool GetAccountIsLocked(string accountId);
     }
 
-    public class FailCounter : IFailCounter
+    public class FailedCounter : IFailedCounter
     {
         public void Reset(string accountId)
         {
@@ -31,7 +31,8 @@ namespace DependencyInjectionWorkshop.Models
         public int GetCount(string accountId)
         {
             var failedCountResponse =
-                new HttpClient() {BaseAddress = new Uri("http://joey.com/")}.PostAsJsonAsync("api/failedCounter/GetFailedCount", accountId).Result;
+                new HttpClient() {BaseAddress = new Uri("http://joey.com/")}
+                    .PostAsJsonAsync("api/failedCounter/GetFailedCount", accountId).Result;
             failedCountResponse.EnsureSuccessStatusCode();
             var failedCount = failedCountResponse.Content.ReadAsAsync<int>().Result;
             return failedCount;

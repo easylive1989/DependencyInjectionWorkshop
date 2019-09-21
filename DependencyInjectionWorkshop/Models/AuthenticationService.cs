@@ -6,7 +6,7 @@
         private readonly IHash _hash;
         private readonly IOtpService _otpService;
         private readonly INotification _notification;
-        private readonly IFailCounter _failCounter;
+        private readonly IFailedCounter _failedCounter;
         private readonly ILogger _logger;
 
         public AuthenticationService()
@@ -15,23 +15,24 @@
             _hash = new Sha256Adapter();
             _otpService = new OtpService();
             _notification = new SlackAdapter();
-            _failCounter = new FailCounter();
+            _failedCounter = new FailedCounter();
             _logger = new NLogAdapter();
         }
 
-        public AuthenticationService(IProfile profile, IHash hash, IOtpService otpService, INotification notification, IFailCounter failCounter, ILogger logger)
+        public AuthenticationService(IFailedCounter failedCounter, ILogger logger, IOtpService otpService,
+            IProfile profile, IHash hash, INotification notification)
         {
             _profile = profile;
             _hash = hash;
             _otpService = otpService;
             _notification = notification;
-            _failCounter = failCounter;
+            _failedCounter = failedCounter;
             _logger = logger;
         }
 
         public bool Verify(string accountId, string password, string otp)
         {
-            var isLocked = _failCounter.GetAccountIsLocked(accountId);
+            var isLocked = _failedCounter.GetAccountIsLocked(accountId);
             if (isLocked)
             {
                 throw new FailedTooManyTimesException();
@@ -45,13 +46,13 @@
 
             if (passwordFromDb == hashedPassword && otp == currentOtp)
             {
-                _failCounter.Reset(accountId);
+                _failedCounter.Reset(accountId);
 
                 return true;
             }
             else
             {
-                _failCounter.Add(accountId);
+                _failedCounter.Add(accountId);
 
                 LogFailCount(accountId);
 
@@ -63,7 +64,7 @@
 
         private void LogFailCount(string accountId)
         {
-            var failedCount = _failCounter.GetCount(accountId);
+            var failedCount = _failedCounter.GetCount(accountId);
 
             _logger.Info($"accountId:{accountId} failed times:{failedCount}");
         }
