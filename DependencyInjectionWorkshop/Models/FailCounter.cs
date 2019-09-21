@@ -5,22 +5,22 @@ namespace DependencyInjectionWorkshop.Models
 {
     public interface IFailCounter
     {
-        void ResetFailCount(string accountId);
-        void AddFailCount(string accountId);
-        int GetFailCount(string accountId);
-        bool GetIsLocked(string accountId);
+        void Reset(string accountId);
+        void Add(string accountId);
+        int GetCount(string accountId);
+        bool GetAccountIsLocked(string accountId);
     }
 
     public class FailCounter : IFailCounter
     {
-        public void ResetFailCount(string accountId)
+        public void Reset(string accountId)
         {
             var resetResponse = new HttpClient() {BaseAddress = new Uri("http://joey.com/")}
                 .PostAsJsonAsync("api/failedCounter/Reset", accountId).Result;
             resetResponse.EnsureSuccessStatusCode();
         }
 
-        public void AddFailCount(string accountId)
+        public void Add(string accountId)
         {
             var addFailedCountResponse =
                 new HttpClient() {BaseAddress = new Uri("http://joey.com/")}
@@ -28,7 +28,7 @@ namespace DependencyInjectionWorkshop.Models
             addFailedCountResponse.EnsureSuccessStatusCode();
         }
 
-        public int GetFailCount(string accountId)
+        public int GetCount(string accountId)
         {
             var failedCountResponse =
                 new HttpClient() {BaseAddress = new Uri("http://joey.com/")}.PostAsJsonAsync("api/failedCounter/GetFailedCount", accountId).Result;
@@ -37,7 +37,7 @@ namespace DependencyInjectionWorkshop.Models
             return failedCount;
         }
 
-        public bool GetIsLocked(string accountId)
+        public bool GetAccountIsLocked(string accountId)
         {
             var isLockedResponse =
                 new HttpClient() {BaseAddress = new Uri("http://joey.com/")}

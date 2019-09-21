@@ -31,7 +31,7 @@
 
         public bool Verify(string accountId, string password, string otp)
         {
-            var isLocked = _failCounter.GetIsLocked(accountId);
+            var isLocked = _failCounter.GetAccountIsLocked(accountId);
             if (isLocked)
             {
                 throw new FailedTooManyTimesException();
@@ -45,13 +45,13 @@
 
             if (passwordFromDb == hashedPassword && otp == currentOtp)
             {
-                _failCounter.ResetFailCount(accountId);
+                _failCounter.Reset(accountId);
 
                 return true;
             }
             else
             {
-                _failCounter.AddFailCount(accountId);
+                _failCounter.Add(accountId);
 
                 LogFailCount(accountId);
 
@@ -63,7 +63,7 @@
 
         private void LogFailCount(string accountId)
         {
-            var failedCount = _failCounter.GetFailCount(accountId);
+            var failedCount = _failCounter.GetCount(accountId);
 
             _logger.Info($"accountId:{accountId} failed times:{failedCount}");
         }
