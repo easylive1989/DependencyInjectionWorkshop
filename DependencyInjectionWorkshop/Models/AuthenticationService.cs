@@ -11,6 +11,8 @@ namespace DependencyInjectionWorkshop.Models
 {
     public class AuthenticationService
     {
+        private ProfileDao _profileDao = new ProfileDao();
+
         public bool Verify(string accountId, string password, string otp)
         {
             var httpClient = new HttpClient() {BaseAddress = new Uri("http://joey.com/")};
@@ -20,8 +22,8 @@ namespace DependencyInjectionWorkshop.Models
             {
                 throw new FailedTooManyTimesException();
             }
-            
-            var passwordFromDb = GetPasswordFromDb(accountId);
+
+            var passwordFromDb = _profileDao.GetPasswordFromDb(accountId);
 
             var hashedPassword = GetHashedPassword(password);
 
@@ -47,7 +49,8 @@ namespace DependencyInjectionWorkshop.Models
 
         private static bool GetIsLocked(string accountId, HttpClient httpClient)
         {
-            var isLockedResponse = httpClient.PostAsync("api/failedCounter/IsLocked", new StringContent(accountId)).Result;
+            var isLockedResponse =
+                httpClient.PostAsync("api/failedCounter/IsLocked", new StringContent(accountId)).Result;
             isLockedResponse.EnsureSuccessStatusCode();
             var isLocked = bool.Parse(isLockedResponse.Content.ReadAsStringAsync().Result);
             return isLocked;
@@ -81,10 +84,11 @@ namespace DependencyInjectionWorkshop.Models
             var failedCount = int.Parse(failedCountResponse.Content.ReadAsStringAsync().Result);
             return failedCount;
         }
-        
+
         private static void AddFailCount(string accountId, HttpClient httpClient)
         {
-            var addFailedCountResponse = httpClient.PostAsync("api/failedCounter/Add", new StringContent(accountId)).Result;
+            var addFailedCountResponse =
+                httpClient.PostAsync("api/failedCounter/Add", new StringContent(accountId)).Result;
             addFailedCountResponse.EnsureSuccessStatusCode();
         }
 
@@ -119,8 +123,11 @@ namespace DependencyInjectionWorkshop.Models
             var hashedPassword = hash.ToString();
             return hashedPassword;
         }
+    }
 
-        private static string GetPasswordFromDb(string accountId)
+    internal class ProfileDao
+    {
+        public string GetPasswordFromDb(string accountId)
         {
             string passwordFromDb;
             using (var connection = new SqlConnection("my connection string"))
