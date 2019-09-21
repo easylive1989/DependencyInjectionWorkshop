@@ -3,7 +3,7 @@ using System.Net.Http;
 
 namespace DependencyInjectionWorkshop.Models
 {
-    public class OptService
+    public class OtpService
     {
         public string GetCurrentOtp(string accountId, HttpClient httpClient)
         {

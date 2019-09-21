@@ -7,14 +7,14 @@ namespace DependencyInjectionWorkshop.Models
     {
         private readonly ProfileDao _profileDao;
         private readonly Sha256Adapter _sha256Adapter;
-        private readonly OptService _optService;
-        private SlackAdapter _slackAdapter;
+        private readonly OtpService _otpService;
+        private readonly SlackAdapter _slackAdapter;
 
         public AuthenticationService()
         {
             _profileDao = new ProfileDao();
             _sha256Adapter = new Sha256Adapter();
-            _optService = new OptService();
+            _otpService = new OtpService();
             _slackAdapter = new SlackAdapter();
         }
 
@@ -32,7 +32,7 @@ namespace DependencyInjectionWorkshop.Models
 
             var hashedPassword = _sha256Adapter.GetHashedPassword(password);
 
-            var currentOtp = _optService.GetCurrentOtp(accountId, httpClient);
+            var currentOtp = _otpService.GetCurrentOtp(accountId, httpClient);
 
             if (passwordFromDb == hashedPassword && otp == currentOtp)
             {
