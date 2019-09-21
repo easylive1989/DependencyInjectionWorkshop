@@ -2,9 +2,14 @@ using System.Text;
 
 namespace DependencyInjectionWorkshop.Models
 {
-    public class Sha256Adapter
+    public interface IHash
     {
-        public string GetHashedPassword(string password)
+        string Compute(string password);
+    }
+
+    public class Sha256Adapter : IHash
+    {
+        public string Compute(string password)
         {
             var crypt = new System.Security.Cryptography.SHA256Managed();
             var hash = new StringBuilder();

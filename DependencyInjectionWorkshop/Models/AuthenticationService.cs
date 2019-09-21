@@ -2,19 +2,31 @@
 {
     public class AuthenticationService
     {
-        private readonly ProfileDao _profileDao;
-        private readonly Sha256Adapter _sha256Adapter;
-        private readonly OtpService _otpService;
-        private readonly SlackAdapter _slackAdapter;
-        private FailCounter _failCounter;
+        private readonly IProfile _profile;
+        private readonly IHash _hash;
+        private readonly IOtpService _otpService;
+        private readonly INotification _notification;
+        private readonly IFailCounter _failCounter;
+        private readonly ILogger _logger;
 
         public AuthenticationService()
         {
-            _profileDao = new ProfileDao();
-            _sha256Adapter = new Sha256Adapter();
+            _profile = new ProfileDao();
+            _hash = new Sha256Adapter();
             _otpService = new OtpService();
-            _slackAdapter = new SlackAdapter();
+            _notification = new SlackAdapter();
             _failCounter = new FailCounter();
+            _logger = new NLogAdapter();
+        }
+
+        public AuthenticationService(IProfile profile, IHash hash, IOtpService otpService, INotification notification, IFailCounter failCounter, ILogger logger)
+        {
+            _profile = profile;
+            _hash = hash;
+            _otpService = otpService;
+            _notification = notification;
+            _failCounter = failCounter;
+            _logger = logger;
         }
 
         public bool Verify(string accountId, string password, string otp)
@@ -25,9 +37,9 @@
                 throw new FailedTooManyTimesException();
             }
 
-            var passwordFromDb = _profileDao.GetPasswordFromDb(accountId);
+            var passwordFromDb = _profile.GetPassword(accountId);
 
-            var hashedPassword = _sha256Adapter.GetHashedPassword(password);
+            var hashedPassword = _hash.Compute(password);
 
             var currentOtp = _otpService.GetCurrentOtp(accountId);
 
@@ -43,7 +55,7 @@
 
                 LogFailCount(accountId);
 
-                _slackAdapter.Notify(accountId);
+                _notification.Send(accountId);
 
                 return false;
             }
@@ -53,13 +65,7 @@
         {
             var failedCount = _failCounter.GetFailCount(accountId);
 
-            LogMessage($"accountId:{accountId} failed times:{failedCount}");
-        }
-
-        private void LogMessage(string message)
-        {
-            var logger = NLog.LogManager.GetCurrentClassLogger();
-            logger.Info(message);
+            _logger.Info($"accountId:{accountId} failed times:{failedCount}");
         }
     }
 }
